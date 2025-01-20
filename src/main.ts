@@ -61,8 +61,12 @@ async function run() {
   });
   debug(`Current labels: ${labels.join(', ')}`);
 
+  debug(`Syncing scope labels: ${syncScopeLabels}`);
+  console.log(`Syncing scope labels: ${syncScopeLabels}`);
   if (syncScopeLabels === 1) {
     const scopes = extractScopesFromTitle(issue_title);
+    console.log(`Issue title: ${issue_title}`);
+    console.log(`Extracted scopes: ${scopes.join(', ')}`);
     debug(`Extracted scopes: ${scopes.join(', ')}`);
     if (scopes.length > 0) {
       try {
@@ -70,8 +74,10 @@ async function run() {
         console.log(`Updated configuration with new scopes: ${scopes.join(', ')}`);
         scopes.forEach(scope => {
           const scopeLabel = `scope:${scope}`;
+          console.log(`Checking if label ${scopeLabel} exists`);
           debug(`Checking if label ${scopeLabel} exists`);
           if (!labels.includes(scopeLabel)) {
+            console.log(`Adding new scope label: ${scopeLabel}`);
             debug(`Adding new scope label: ${scopeLabel}`);
             toAdd.push(scopeLabel);
           }
