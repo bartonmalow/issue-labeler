@@ -29,4 +29,3 @@ jobs:
                   include-body: 0
                   sync-scope-labels: ${{ inputs.sync-scope-labels }}
                   issue-number: ${{ inputs.issue-number }}
-                  debug: 1
