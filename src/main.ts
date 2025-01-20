@@ -59,6 +59,12 @@ async function run() {
       try {
         await updateConfigWithNewScopes(client, configPath, scopes);
         console.log(`Updated configuration with new scopes: ${scopes.join(', ')}`);
+        scopes.forEach(scope => {
+          const scopeLabel = `scope:${scope}`;
+          if (!labels.includes(scopeLabel)) {
+            toAdd.push(scopeLabel);
+          }
+        });
       } catch (error) {
         console.log('Failed to update scopes in configuration:', error);
       }
@@ -349,6 +355,9 @@ async function updateConfigWithNewScopes(
 function extractScopesFromTitle(title: string): string[] {
   const scopeRegex = /^(?:feat|fix|docs|style|refactor|test|chore)\(([^)]+)\):/;
   const match = title.match(scopeRegex);
+  debug(`Title: ${title}`);
+  debug(`Match: ${match}`);
+  debug(`Match[1]: ${match?.[1]}`);
   if (match && match[1]) {
     // Handle multiple scopes separated by comma
     return match[1].split(',').map(scope => scope.trim());
