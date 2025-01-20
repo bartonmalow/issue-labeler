@@ -8,6 +8,10 @@ on:
                 description: 'Sync scope labels'
                 required: true
                 type: number
+            issue-number:
+                description: 'Issue number to label'
+                required: true
+                type: number
 
 jobs:
     triage:
