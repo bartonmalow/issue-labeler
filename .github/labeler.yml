@@ -1,0 +1,19 @@
+# Conventional Commit Labels
+# https://www.conventionalcommits.org/en/v1.0.0/
+feat:
+    - '(feat)'
+fix:
+    - '(fix)'
+chore:
+    - '(chore)'
+docs:
+    - '(docs)'
+refactor:
+    - '(refactor)'
+style:
+    - '(style)'
+perf:
+    - '(perf)'
+test:
+    - '(test)'
+

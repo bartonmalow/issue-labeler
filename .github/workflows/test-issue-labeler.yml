@@ -1,0 +1,26 @@
+name: 'Test Issue Labeler'
+on:
+    issues:
+        types: [opened, edited]
+    workflow_dispatch:
+        inputs:
+            sync-scope-labels:
+                description: 'Sync scope labels'
+                required: true
+                type: number
+
+jobs:
+    triage:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            
+            - uses: ./
+              with:
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}
+                  configuration-path: .github/labeler.yml
+                  enable-versioned-regex: 0
+                  include-title: 1
+                  sync-labels: 1
+                  include-body: 0
+                  sync-scope-labels: ${{ inputs.sync-scope-labels }}

@@ -1,7 +1,7 @@
-import { getInput, setFailed, debug, setOutput } from "@actions/core";
-import { context, getOctokit } from "@actions/github";
-import { load as loadYaml } from "js-yaml";
-import fs from "fs";
+import { getInput, setFailed, debug, setOutput } from '@actions/core';
+import { context, getOctokit } from '@actions/github';
+import { load as loadYaml } from 'js-yaml';
+import fs from 'fs';
 
 type GitHubClient = ReturnType<typeof getOctokit>["rest"];
 
@@ -13,6 +13,7 @@ async function run() {
   const enableVersionedRegex = parseInt(
     getInput("enable-versioned-regex", { required: true })
   );
+  const syncScopeLabels = parseInt(getInput("sync-scope-labels", { required: false })) || 0;
   const versionedRegex = new RegExp(
     getInput("versioned-regex", { required: false })
   );
@@ -50,6 +51,18 @@ async function run() {
   if (!issue_title) {
     console.log("Could not get issue or PR title from API or context, exiting");
     return;
+  }
+
+  if (syncScopeLabels === 1) {
+    const scopes = extractScopesFromTitle(issue_title);
+    if (scopes.length > 0) {
+      try {
+        await updateConfigWithNewScopes(client, configPath, scopes);
+        console.log(`Updated configuration with new scopes: ${scopes.join(', ')}`);
+      } catch (error) {
+        console.log('Failed to update scopes in configuration:', error);
+      }
+    }
   }
 
   const labels: String[] = []
@@ -262,6 +275,85 @@ function removeLabel(client: GitHubClient, issue_number: number) {
       throw error;
     }
   };
+}
+
+interface ConfigurationFile {
+  scopes?: string[];
+  [key: string]: string | string[] | undefined;
+}
+
+async function updateConfigWithNewScopes(
+  client: GitHubClient,
+  configPath: string,
+  newScopes: string[]
+) {
+  try {
+    let configContent: string;
+    let sha: string | undefined;
+
+    if (fs.existsSync(configPath)) {
+      configContent = fs.readFileSync(configPath, { encoding: "utf8" });
+    } else {
+      const { data } = await client.repos.getContent({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        ref: context.sha,
+        path: configPath,
+      });
+
+      if (!("content" in data)) {
+        throw new TypeError(
+          "The configuration path provided is not a valid file."
+        );
+      }
+
+      configContent = Buffer.from(data.content, "base64").toString("utf8");
+      sha = data.sha;
+    }
+
+    const config: ConfigurationFile = loadYaml(configContent) as ConfigurationFile;
+    
+    // Initialize scopes array if it doesn't exist
+    if (!config.scopes) {
+      config.scopes = [];
+    }
+
+    // Add new scopes that don't already exist
+    const updatedScopes = [...new Set([...config.scopes, ...newScopes])];
+    config.scopes = updatedScopes;
+
+    // Convert back to YAML
+    const updatedContent = require('js-yaml').dump(config);
+
+    // Update the file in the repository
+    if (!fs.existsSync(configPath)) {
+      await client.repos.createOrUpdateFileContents({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        path: configPath,
+        message: 'Update scopes in labeler configuration',
+        content: Buffer.from(updatedContent).toString('base64'),
+        sha: sha,
+      });
+    } else {
+      fs.writeFileSync(configPath, updatedContent, 'utf8');
+    }
+
+    return true;
+  } catch (error) {
+    console.log("Error updating configuration file with new scopes: " + error);
+    throw error;
+  }
+}
+
+function extractScopesFromTitle(title: string): string[] {
+  const scopeRegex = /^(?:feat|fix|docs|style|refactor|test|chore)\(([^)]+)\):/;
+  const match = title.match(scopeRegex);
+  if (match && match[1]) {
+    // Handle multiple scopes separated by comma
+    return match[1].split(',').map(scope => scope.trim());
+  }
+  return [];
 }
 
 run().catch(setFailed);
