@@ -53,15 +53,26 @@ async function run() {
     return;
   }
 
+  const labels: string[] = [];
+  issue.data.labels.forEach((label) => {
+    if (typeof label === 'string') {
+      labels.push(label);
+    }
+  });
+  debug(`Current labels: ${labels.join(', ')}`);
+
   if (syncScopeLabels === 1) {
     const scopes = extractScopesFromTitle(issue_title);
+    debug(`Extracted scopes: ${scopes.join(', ')}`);
     if (scopes.length > 0) {
       try {
         await updateConfigWithNewScopes(client, configPath, scopes);
         console.log(`Updated configuration with new scopes: ${scopes.join(', ')}`);
         scopes.forEach(scope => {
           const scopeLabel = `scope:${scope}`;
+          debug(`Checking if label ${scopeLabel} exists`);
           if (!labels.includes(scopeLabel)) {
+            debug(`Adding new scope label: ${scopeLabel}`);
             toAdd.push(scopeLabel);
           }
         });
@@ -70,14 +81,6 @@ async function run() {
       }
     }
   }
-
-  const labels: String[] = []
-  issue.data.labels.forEach((label) => {
-    if (typeof label === 'string') {
-    } else {
-      labels.push(<String>label.name);
-    }
-  });
 
   debug(`Issue has the following labels #${labels}`);
 
@@ -353,7 +356,7 @@ async function updateConfigWithNewScopes(
 }
 
 function extractScopesFromTitle(title: string): string[] {
-  const scopeRegex = /^(?:feat|fix|docs|style|refactor|test|chore)\(([^)]+)\):/;
+  const scopeRegex = /\(([^)]+)\):/;
   const match = title.match(scopeRegex);
   debug(`Title: ${title}`);
   debug(`Match: ${match}`);
