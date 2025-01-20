@@ -1,17 +1,7 @@
-name: 'Test Issue Labeler'
+name: 'Update Github Issue Labels'
 on:
     issues:
         types: [opened, edited]
-    workflow_dispatch:
-        inputs:
-            sync-scope-labels:
-                description: 'Sync scope labels'
-                required: true
-                type: number
-            issue-number:
-                description: 'Issue number to label'
-                required: true
-                type: number
 
 jobs:
     label_update:
