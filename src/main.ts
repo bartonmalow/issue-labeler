@@ -62,22 +62,16 @@ async function run() {
   debug(`Current labels: ${labels.join(', ')}`);
 
   debug(`Syncing scope labels: ${syncScopeLabels}`);
-  console.log(`Syncing scope labels: ${syncScopeLabels}`);
   if (syncScopeLabels === 1) {
     const scopes = extractScopesFromTitle(issue_title);
-    console.log(`Issue title: ${issue_title}`);
-    console.log(`Extracted scopes: ${scopes.join(', ')}`);
     debug(`Extracted scopes: ${scopes.join(', ')}`);
     if (scopes.length > 0) {
       try {
         await updateConfigWithNewScopes(client, configPath, scopes);
-        console.log(`Updated configuration with new scopes: ${scopes.join(', ')}`);
         scopes.forEach(scope => {
-          const scopeLabel = `scope:${scope}`;
-          console.log(`Checking if label ${scopeLabel} exists`);
+          const scopeLabel = `${scope}`;
           debug(`Checking if label ${scopeLabel} exists`);
           if (!labels.includes(scopeLabel)) {
-            console.log(`Adding new scope label: ${scopeLabel}`);
             debug(`Adding new scope label: ${scopeLabel}`);
             toAdd.push(scopeLabel);
           }
@@ -306,8 +300,10 @@ async function updateConfigWithNewScopes(
     let configContent: string;
     let sha: string | undefined;
 
+    // Load existing config
     if (fs.existsSync(configPath)) {
       configContent = fs.readFileSync(configPath, { encoding: "utf8" });
+      console.log('Loaded local config file:', configPath);
     } else {
       const { data } = await client.repos.getContent({
         owner: context.repo.owner,
@@ -317,13 +313,12 @@ async function updateConfigWithNewScopes(
       });
 
       if (!("content" in data)) {
-        throw new TypeError(
-          "The configuration path provided is not a valid file."
-        );
+        throw new TypeError("The configuration path provided is not a valid file.");
       }
 
       configContent = Buffer.from(data.content, "base64").toString("utf8");
       sha = data.sha;
+      console.log('Loaded remote config file:', configPath);
     }
 
     const config: ConfigurationFile = loadYaml(configContent) as ConfigurationFile;
@@ -333,25 +328,38 @@ async function updateConfigWithNewScopes(
       config.scopes = [];
     }
 
+    console.log('Current scopes:', config.scopes);
+    console.log('New scopes to add:', newScopes);
+
     // Add new scopes that don't already exist
     const updatedScopes = [...new Set([...config.scopes, ...newScopes])];
     config.scopes = updatedScopes;
 
+    console.log('Updated scopes:', updatedScopes);
+
     // Convert back to YAML
     const updatedContent = require('js-yaml').dump(config);
 
-    // Update the file in the repository
-    if (!fs.existsSync(configPath)) {
-      await client.repos.createOrUpdateFileContents({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        path: configPath,
-        message: 'Update scopes in labeler configuration',
-        content: Buffer.from(updatedContent).toString('base64'),
-        sha: sha,
-      });
-    } else {
-      fs.writeFileSync(configPath, updatedContent, 'utf8');
+    // Always write locally for development visibility
+    fs.writeFileSync(configPath + '.updated', updatedContent, 'utf8');
+    console.log('Wrote updated config to:', configPath + '.updated');
+
+    // Update the file in the repository if we're in GitHub Actions
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      if (!fs.existsSync(configPath)) {
+        await client.repos.createOrUpdateFileContents({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          path: configPath,
+          message: 'Update scopes in labeler configuration',
+          content: Buffer.from(updatedContent).toString('base64'),
+          sha: sha,
+        });
+        console.log('Updated remote config file');
+      } else {
+        fs.writeFileSync(configPath, updatedContent, 'utf8');
+        console.log('Updated local config file');
+      }
     }
 
     return true;
