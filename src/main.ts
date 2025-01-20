@@ -358,6 +358,7 @@ async function updateConfigWithNewScopes(
 function extractScopesFromTitle(title: string): string[] {
   const scopeRegex = /\(([^)]+)\):/;
   const match = title.match(scopeRegex);
+  debug('Extracting scopes from title');
   debug(`Title: ${title}`);
   debug(`Match: ${match}`);
   debug(`Match[1]: ${match?.[1]}`);

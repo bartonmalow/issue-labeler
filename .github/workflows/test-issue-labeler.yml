@@ -21,12 +21,6 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             
-            
-            - name: Configure Git User
-              run: |
-                git config --global user.name 'LabelBot'
-                git config --global user.email 'labelbot@bartonmalow.com'
-            
             - uses: ./
               with:
                   repo-token: ${{ secrets.GITHUB_TOKEN }}
