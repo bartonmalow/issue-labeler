@@ -1,7 +1,5 @@
 name: 'Test Issue Labeler'
 on:
-    issues:
-        types: [opened, edited]
     workflow_dispatch:
         inputs:
             sync-scope-labels:
