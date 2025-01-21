@@ -69,7 +69,7 @@ async function run() {
       try {
         await updateConfigWithNewScopes(client, configPath, scopes);
         scopes.forEach(scope => {
-          const scopeLabel = `${scope}`;
+          const scopeLabel = `scope:${scope}`;
           debug(`Checking if label ${scopeLabel} exists`);
           if (!labels.includes(scopeLabel)) {
             debug(`Adding new scope label: ${scopeLabel}`);
@@ -255,6 +255,29 @@ async function addLabels(
   try {
     const formatted = labels.map((l) => `"${l}"`).join(", ");
     debug(`Adding label(s) (${formatted}) to issue #${issue_number}`);
+    
+    // First ensure scope labels exist with proper description
+    for (const label of labels) {
+      // Only create labels with description for scope labels
+      if (label.startsWith('scope:')) {
+        try {
+          await client.issues.createLabel({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: label,
+            description: "This Label is the Scope or Package",
+            color: "696969"  // Gray color for scope labels
+          });
+        } catch (error: any) {
+          // Ignore if label already exists
+          if (error.status !== 422) {
+            console.log(`Warning: Could not create label ${label}:`, error);
+          }
+        }
+      }
+    }
+
+    // Then add the labels to the issue
     return await client.issues.addLabels({
       owner: context.repo.owner,
       repo: context.repo.repo,
@@ -347,6 +370,7 @@ async function updateConfigWithNewScopes(
     // Update the file in the repository if we're in GitHub Actions
     if (process.env.GITHUB_ACTIONS === 'true') {
       if (!fs.existsSync(configPath)) {
+        debug('Updating remote config file');
         await client.repos.createOrUpdateFileContents({
           owner: context.repo.owner,
           repo: context.repo.repo,
