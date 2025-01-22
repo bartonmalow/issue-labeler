@@ -17,11 +17,4 @@ perf:
 test:
     - '(test)'
 
-# Label configuration for issue labeler
-scopes: []  # Initial empty array for scopes
-
-# Add any other label configurations below
-# Example:
-# bug:
-#   - '(bug|fix|defect)'
 
